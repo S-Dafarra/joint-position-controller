@@ -215,6 +215,10 @@ bool JointControlModule::updateModule()
     std::lock_guard<std::mutex> lock(m_mutex);
 
     if (!m_running) {
+        if (!m_robotControlHelper->getFeedbacks(100))
+        {
+            return true;
+        }
         if ((m_robotControlHelper->getLeftWrench().getLinearVec3()(2) > 100) && (m_robotControlHelper->getRightWrench().getLinearVec3()(2) > 100))
         {
             for (int i = 0; i < 5; ++i)

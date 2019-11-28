@@ -1,0 +1,18 @@
+/*
+ * Copyright (C) 2018 Fondazione Istituto Italiano di Tecnologia
+ * Authors: Stefano Dafarra
+ * CopyPolicy: Released under the terms of the LGPLv2.1 or later, see LGPL.TXT
+ *
+ */
+#ifndef DPLANNER_FOLDERPATH_H_IN
+#define DPLANNER_FOLDERPATH_H_IN
+
+#define SOURCE_DIR "@PROJECT_SOURCE_DIR@"
+#include <string>
+
+inline std::string getAbsDirPath(const std::string& dir)
+{
+    return std::string(SOURCE_DIR) + "/" + dir;
+}
+
+#endif // DPLANNER_FOLDERPATH_H_IN

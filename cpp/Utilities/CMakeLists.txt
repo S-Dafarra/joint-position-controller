@@ -15,6 +15,9 @@ add_install_rpath_support(BIN_DIRS "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BIND
   DEPENDS ENABLE_RPATH
   USE_LINK_PATH)
 
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/FolderPath.h.in" "${CMAKE_CURRENT_BINARY_DIR}/generated/FolderPath.h" @ONLY)
+
+
 # set cpp files
 set(${UTILITY_LIBRARY_NAME}_SRC
   src/Utils.cpp
@@ -30,7 +33,7 @@ set(${UTILITY_LIBRARY_NAME}_HDR
 add_library(${UTILITY_LIBRARY_NAME} ${${UTILITY_LIBRARY_NAME}_SRC} ${${UTILITY_LIBRARY_NAME}_HDR})
 
 # add include directories to the build.
-target_include_directories(${UTILITY_LIBRARY_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(${UTILITY_LIBRARY_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_BINARY_DIR}/generated)
 
 target_link_libraries(${UTILITY_LIBRARY_NAME}
   ${YARP_LIBRARIES}

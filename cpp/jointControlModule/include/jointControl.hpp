@@ -12,6 +12,7 @@
 // std
 #include <memory>
 #include <deque>
+#include <mutex>
 
 // YARP
 #include <yarp/os/RFModule.h>
@@ -28,6 +29,8 @@ class JointControlModule: public yarp::os::RFModule
 {
     double m_dT; /**< RFModule period. */
     std::string m_robot; /**< Robot name. */
+    std::mutex m_mutex;
+    bool m_running = false;
 
 
     std::unique_ptr<RobotHelper> m_robotControlHelper; /**< Robot control helper. */

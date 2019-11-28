@@ -10,6 +10,8 @@
 #include <iostream>
 #include <memory>
 #include <fstream>
+#include <chrono>
+#include <thread>
 
 // YARP
 #include <yarp/os/RFModule.h>
@@ -26,10 +28,13 @@
 
 #include <jointControl.hpp>
 #include <Utils.hpp>
+#include <FolderPath.h>
 
 std::pair<bool, std::deque<iDynTree::VectorDynSize>> readStateFromFile(const std::string& filename, const std::size_t num_fields)
 {
     std::deque<iDynTree::VectorDynSize> data;
+
+    yInfo() << "Opening " << filename;
 
     std::ifstream istrm(filename);
 
@@ -48,13 +53,13 @@ std::pair<bool, std::deque<iDynTree::VectorDynSize>> readStateFromFile(const std
         }
 
         iDynTree::VectorDynSize vector;
-        vector.resize(num_fields);
+        vector.resize(static_cast<unsigned int>(num_fields));
         std::size_t found_lines = 0;
-        for (auto line : istrm_strings)
+        for (auto& l : istrm_strings)
         {
-            std::size_t found_fields = 0;
+            unsigned int found_fields = 0;
             std::string number_str;
-            std::istringstream iss(line);
+            std::istringstream iss(l);
 
             while (iss >> number_str)
             {
@@ -93,14 +98,17 @@ bool JointControlModule::advanceReferenceSignals()
 
 double JointControlModule::getPeriod()
 {
+    std::lock_guard<std::mutex> lock(m_mutex);
     //  period of the module (seconds)
     return m_dT;
 }
 
 bool JointControlModule::configure(yarp::os::ResourceFinder& rf)
 {
+    std::lock_guard<std::mutex> lock(m_mutex);
+
     yarp::os::Bottle& generalOptions = rf.findGroup("GENERAL");
-    m_dT = generalOptions.check("sampling_time", yarp::os::Value(0.016)).asDouble();
+    m_dT = generalOptions.check("sampling_time", yarp::os::Value(0.01)).asDouble();
     std::string name;
     if(!YarpHelper::getStringFromSearchable(generalOptions, "name", name))
     {
@@ -108,6 +116,13 @@ bool JointControlModule::configure(yarp::os::ResourceFinder& rf)
         return false;
     }
     setName(name.c_str());
+
+    std::string datasetType;
+    if(!YarpHelper::getStringFromSearchable(generalOptions, "datasetType", datasetType))
+    {
+        yError() << "[JointControlModule::configure] Unable to get the string \"datasetType\" from searchable.";
+        return false;
+    }
 
     m_robotControlHelper = std::make_unique<RobotHelper>();
     yarp::os::Bottle& robotControlHelperOptions = rf.findGroup("ROBOT_CONTROL");
@@ -133,36 +148,12 @@ bool JointControlModule::configure(yarp::os::ResourceFinder& rf)
         return false;
     }
 
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+
+
     m_qDesired.clear();
-    iDynTree::VectorDynSize v(m_robotControlHelper->getActuatedDoFs());
 
-    // std::string line;
-    // std::ifstream myfile ("jointDataset.txt");
-    // if (myfile.is_open())
-    // {
-    //     while ( getline (myfile,line) )
-    //     {
-    //         std::stringstream ss;
-    //         ss.str(line);
-    //         std::string temp;
-    //         int i = 0;
-    //         while(!ss.eof())
-    //         {
-    //             yInfo() << i << " " << ss.str();;
-    //             ss >> temp;
-    //             if(!(std::stringstream(temp) >> v(i)))
-    //                 return false;
-    //             i++;
-    //         }
-
-    //         yInfo() << v.size();
-
-    //         m_qDesired.push_back(v);
-    //     }
-    //     myfile.close();
-    // }
-
-    auto data = readStateFromFile("jointDataset.txt", 23);
+    auto data = readStateFromFile(getAbsDirPath("txtDatasets/" + datasetType + "/jointDataset.txt"), 23);
     if(!data.first)
     {
         return false;
@@ -170,11 +161,31 @@ bool JointControlModule::configure(yarp::os::ResourceFinder& rf)
 
     m_qDesired = data.second;
 
-    if(!m_robotControlHelper->switchToControlMode(VOCAB_CM_POSITION_DIRECT))
+    if(!m_robotControlHelper->setPositionReferences(m_qDesired.front(), 5.0))
     {
-        yError() << "faild to switchtocontrolmode";
+        yError() << "[JointControlModule::configure] Error while setting the initial position.";
         return false;
     }
+
+    bool motionDone = false;
+    while (!motionDone)
+    {
+        if(!m_robotControlHelper->checkMotionDone(motionDone))
+        {
+            yError() << "[WalkingModule::updateModule] Unable to check if the motion is done";
+            return false;
+        }
+    }
+
+    yInfo() << "[JointControlModule::configure] Preparation completed. Switching to position direct.";
+
+    if(!m_robotControlHelper->switchToControlMode(VOCAB_CM_POSITION_DIRECT))
+    {
+        yError() << "Failed to switchtocontrolmode";
+        return false;
+    }
+
+    std::this_thread::sleep_for(std::chrono::seconds(2));
 
     yInfo() << "[JointControlModule::configure] Ready to play!";
 
@@ -184,6 +195,7 @@ bool JointControlModule::configure(yarp::os::ResourceFinder& rf)
 
 bool JointControlModule::close()
 {
+    std::lock_guard<std::mutex> lock(m_mutex);
 
     // restore PID
     m_robotControlHelper->getPIDHandler().restorePIDs();
@@ -200,6 +212,21 @@ bool JointControlModule::close()
 
 bool JointControlModule::updateModule()
 {
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    if (!m_running) {
+        if ((m_robotControlHelper->getLeftWrench().getLinearVec3()(2) > 100) && (m_robotControlHelper->getRightWrench().getLinearVec3()(2) > 100))
+        {
+            for (int i = 0; i < 5; ++i)
+            {
+                yInfo() << "Starting...." << (5-i);
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+            }
+            m_running = true;
+        }
+        return true;
+    }
+
     if(!m_robotControlHelper->setDirectPositionReferences(m_qDesired.front()))
     {
         yError() << "[JointControlModule::updateModule] Error while setting the reference position to iCub.";

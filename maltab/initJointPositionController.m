@@ -48,8 +48,8 @@ Config.tStep           = 0.01;
 % Save the Matlab workspace after stopping the simulation
 Config.SAVE_WORKSPACE         = true;
 
-datasetType = 'Classical';
-%datasetType = 'Dynamic';
+%datasetType = 'Classical';
+datasetType = 'Dynamical';
 %datasetType = 'Hyperbolic';
 
 dataset = [datasetType, '/log.mat'];

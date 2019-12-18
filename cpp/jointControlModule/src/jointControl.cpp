@@ -232,27 +232,12 @@ bool JointControlModule::updateModule()
                 return false;
             }
 
-            yInfo() << "Trying to connect /base-estimator/center_of_mass/state:o to /YarpMatLoggerModule/com_state:i";
-            if (!yarp::os::Network::connect("/base-estimator/center_of_mass/state:o", "/YarpMatLoggerModule/com_state:i")) {
-                yError() << "Failed to connect /base-estimator/center_of_mass/state:o to /YarpMatLoggerModule/com_state:i";
+            yInfo() << "Trying to connect /base-estimator/center_of_mass/state:o to /logger";
+            if (!yarp::os::Network::connect("/base-estimator/center_of_mass/state:o", "/logger")) {
+                yError() << "Failed to connect /base-estimator/center_of_mass/state:o to /logger";
                 return false;
             }
 
-            yarp::os::RpcClient loggerClientPort;
-            std::string loggerClientName = "/JointControlModule/LoggerControl";
-            std::string loggerRPCName = "/YarpMatLoggerModule/rpc";
-            loggerClientPort.open(loggerClientName);
-            yInfo() << "Trying to connect to " << loggerClientName;
-            if (!yarp::os::Network::connect(loggerClientName, loggerRPCName)) {
-                yError() << "Failed to connect to the logger RPC port.";
-                return false;
-            }
-
-            yarp::os::Bottle cmdLogger, replyLogger;
-            cmdLogger.addString("record");
-            loggerClientPort.write(cmdLogger, replyLogger);
-            yInfo() << "Sent record";
-            yInfo() << "Received: " << replyLogger.toString();
 
             yarp::os::Bottle cmd, reply;
             cmd.addString("startFloatingBaseFilter");

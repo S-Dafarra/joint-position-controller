@@ -222,12 +222,12 @@ bool JointControlModule::updateModule()
         }
         if ((m_robotControlHelper->getLeftWrench().getLinearVec3()(2) > 100) && (m_robotControlHelper->getRightWrench().getLinearVec3()(2) > 100))
         {
-            yarp::os::RpcClient port;
-            std::string clientName = "/JointControlModule/baseEstimatorControl";
+            yarp::os::RpcClient estimatorClientPort;
+            std::string estimatorClientName = "/JointControlModule/baseEstimatorControl";
             std::string estimatorRPCName = "/base-estimator/rpc";
-            port.open(clientName);
+            estimatorClientPort.open(estimatorClientName);
             yInfo() << "Trying to connect to " << estimatorRPCName;
-            if (!yarp::os::Network::connect(clientName, estimatorRPCName)) {
+            if (!yarp::os::Network::connect(estimatorClientName, estimatorRPCName)) {
                 yError() << "Failed to connect to the base estimator RPC port.";
                 return false;
             }
@@ -238,10 +238,25 @@ bool JointControlModule::updateModule()
                 return false;
             }
 
+            yarp::os::RpcClient loggerClientPort;
+            std::string loggerClientName = "/JointControlModule/LoggerControl";
+            std::string loggerRPCName = "/YarpMatLoggerModule/rpc";
+            loggerClientPort.open(loggerClientName);
+            yInfo() << "Trying to connect to " << loggerClientName;
+            if (!yarp::os::Network::connect(loggerClientName, loggerRPCName)) {
+                yError() << "Failed to connect to the logger RPC port.";
+                return false;
+            }
+
+            yarp::os::Bottle cmdLogger, replyLogger;
+            cmdLogger.addString("record");
+            loggerClientPort.write(cmdLogger, replyLogger);
+            yInfo() << "Sent record";
+            yInfo() << "Received: " << replyLogger.toString();
 
             yarp::os::Bottle cmd, reply;
             cmd.addString("startFloatingBaseFilter");
-            port.write(cmd, reply);
+            estimatorClientPort.write(cmd, reply);
             yInfo() << "Sent startFloatingBaseFilter";
             yInfo() << "Received: " << reply.toString();
 

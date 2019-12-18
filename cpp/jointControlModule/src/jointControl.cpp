@@ -18,6 +18,7 @@
 #include <yarp/os/BufferedPort.h>
 #include <yarp/sig/Vector.h>
 #include <yarp/os/LogStream.h>
+#include <yarp/os/RpcClient.h>
 
 // iDynTree
 #include <iDynTree/Core/VectorFixSize.h>
@@ -221,6 +222,29 @@ bool JointControlModule::updateModule()
         }
         if ((m_robotControlHelper->getLeftWrench().getLinearVec3()(2) > 100) && (m_robotControlHelper->getRightWrench().getLinearVec3()(2) > 100))
         {
+            yarp::os::RpcClient port;
+            std::string clientName = "/JointControlModule/baseEstimatorControl";
+            std::string estimatorRPCName = "/base-estimator/rpc";
+            port.open(clientName);
+            yInfo() << "Trying to connect to " << estimatorRPCName;
+            if (!yarp::os::Network::connect(clientName, estimatorRPCName)) {
+                yError() << "Failed to connect to the base estimator RPC port.";
+                return false;
+            }
+
+            yInfo() << "Trying to connect /base-estimator/center_of_mass/state:o to /YarpMatLoggerModule/com_state:i";
+            if (!yarp::os::Network::connect("/base-estimator/center_of_mass/state:o", "/YarpMatLoggerModule/com_state:i")) {
+                yError() << "Failed to connect /base-estimator/center_of_mass/state:o to /YarpMatLoggerModule/com_state:i";
+                return false;
+            }
+
+
+            yarp::os::Bottle cmd, reply;
+            cmd.addString("startFloatingBaseFilter");
+            port.write(cmd, reply);
+            yInfo() << "Sent startFloatingBaseFilter";
+            yInfo() << "Received: " << reply.toString();
+
             for (int i = 0; i < 5; ++i)
             {
                 yInfo() << "Starting...." << (5-i);

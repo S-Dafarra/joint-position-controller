@@ -80,6 +80,7 @@ class RobotHelper
 
     double m_startingPositionControlTime;
     bool m_positionMoveSkipped;
+    bool m_closed{false};
 
     /**
      * Get the higher position error among all joints.

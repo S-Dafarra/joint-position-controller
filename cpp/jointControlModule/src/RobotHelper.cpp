@@ -448,6 +448,12 @@ bool RobotHelper::switchToControlMode(const int& controlMode)
         return false;
     }
 
+    if(m_closed)
+    {
+        yError() << "[switchToControlMode] The device is closed.";
+        return false;
+    }
+
     // set the control interface
     std::vector<int> controlModes(m_actuatedDOFs, controlMode);
     if(!m_controlModeInterface->setControlModes(controlModes.data()))
@@ -649,12 +655,16 @@ bool RobotHelper::close()
 {
     m_rightWrenchPort.close();
     m_leftWrenchPort.close();
-    switchToControlMode(VOCAB_CM_POSITION);
+    if (!m_closed)
+    {
+        switchToControlMode(VOCAB_CM_POSITION);
+    }
     if(!m_robotDevice.close())
     {
         yError() << "[close] Unable to close the device.";
         return false;
     }
+    m_closed = true;
 
     return true;
 }

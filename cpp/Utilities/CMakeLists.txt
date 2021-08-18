@@ -37,4 +37,5 @@ target_include_directories(${UTILITY_LIBRARY_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE
 
 target_link_libraries(${UTILITY_LIBRARY_NAME}
   ${YARP_LIBRARIES}
-  ${iDynTree_LIBRARIES})
+  ${iDynTree_LIBRARIES}
+  Eigen3::Eigen)

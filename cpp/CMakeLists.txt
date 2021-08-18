@@ -10,6 +10,8 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 find_package(YARP REQUIRED)
 find_package(iDynTree REQUIRED)
+find_package(Eigen3 REQUIRED)
+find_package(ICUB REQUIRED)
 
 add_subdirectory(Utilities)
 add_subdirectory(jointControlModule)

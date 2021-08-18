@@ -43,6 +43,7 @@ target_link_libraries(${EXE_TARGET_NAME}
   ${YARP_LIBRARIES}
   ${iDynTree_LIBRARIES}
   Threads::Threads
-  UtilityLibrary)
+  UtilityLibrary
+  ctrlLib)
 
 install(TARGETS ${EXE_TARGET_NAME} DESTINATION bin)

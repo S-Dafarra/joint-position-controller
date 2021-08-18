@@ -222,28 +222,32 @@ bool JointControlModule::updateModule()
         }
         if ((m_robotControlHelper->getLeftWrench().getLinearVec3()(2) > 100) && (m_robotControlHelper->getRightWrench().getLinearVec3()(2) > 100))
         {
-            yarp::os::RpcClient estimatorClientPort;
-            std::string estimatorClientName = "/JointControlModule/baseEstimatorControl";
             std::string estimatorRPCName = "/base-estimator/rpc";
-            estimatorClientPort.open(estimatorClientName);
-            yInfo() << "Trying to connect to " << estimatorRPCName;
-            if (!yarp::os::Network::connect(estimatorClientName, estimatorRPCName)) {
-                yError() << "Failed to connect to the base estimator RPC port.";
-                return false;
+
+            if (yarp::os::Network::exists(estimatorRPCName))
+            {
+                yarp::os::RpcClient estimatorClientPort;
+
+                std::string estimatorClientName = "/JointControlModule/baseEstimatorControl";
+                estimatorClientPort.open(estimatorClientName);
+                yInfo() << "Trying to connect to " << estimatorRPCName;
+                if (!yarp::os::Network::connect(estimatorClientName, estimatorRPCName)) {
+                    yError() << "Failed to connect to the base estimator RPC port.";
+                    return false;
+                }
+
+                yInfo() << "Trying to connect /base-estimator/center_of_mass/state:o to /logger";
+                if (!yarp::os::Network::connect("/base-estimator/center_of_mass/state:o", "/logger")) {
+                    yError() << "Failed to connect /base-estimator/center_of_mass/state:o to /logger";
+                    return false;
+                }
+
+                yarp::os::Bottle cmd, reply;
+                cmd.addString("startFloatingBaseFilter");
+                estimatorClientPort.write(cmd, reply);
+                yInfo() << "Sent startFloatingBaseFilter";
+                yInfo() << "Received: " << reply.toString();
             }
-
-            yInfo() << "Trying to connect /base-estimator/center_of_mass/state:o to /logger";
-            if (!yarp::os::Network::connect("/base-estimator/center_of_mass/state:o", "/logger")) {
-                yError() << "Failed to connect /base-estimator/center_of_mass/state:o to /logger";
-                return false;
-            }
-
-
-            yarp::os::Bottle cmd, reply;
-            cmd.addString("startFloatingBaseFilter");
-            estimatorClientPort.write(cmd, reply);
-            yInfo() << "Sent startFloatingBaseFilter";
-            yInfo() << "Received: " << reply.toString();
 
             for (int i = 0; i < 5; ++i)
             {

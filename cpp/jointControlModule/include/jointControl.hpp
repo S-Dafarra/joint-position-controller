@@ -35,7 +35,7 @@ class JointControlModule: public yarp::os::RFModule
 
     std::unique_ptr<RobotHelper> m_robotControlHelper; /**< Robot control helper. */
 
-    std::deque<iDynTree::VectorDynSize> m_qDesired; /**< Vector containing the results of the IK alg
+    std::deque<iDynTree::VectorDynSize> m_qDesired; /**< Vector containing the results of the IK. */
 
     /**
      * Advance the reference signal.
